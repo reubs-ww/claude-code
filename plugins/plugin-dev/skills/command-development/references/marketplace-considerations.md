@@ -35,15 +35,34 @@ Platform: $PLATFORM
 if [ "$PLATFORM" = "Windows" ]; then
   # Windows-specific handling
   PATH_SEP="\\"
-  NULL_DEVICE="NUL"
 else
   # Unix-like handling
   PATH_SEP="/"
-  NULL_DEVICE="/dev/null"
 fi
+
+# IMPORTANT: Always use /dev/null in bash contexts, even on Windows.
+# Git Bash, MSYS2, and Cygwin all support /dev/null natively.
+# Using NUL in bash creates a literal file named "nul" instead of discarding output.
+NULL_DEVICE="/dev/null"
 
 [Platform-appropriate implementation...]
 ```
+
+> **⚠️ Warning: The `nul` File Creation Pitfall**
+>
+> On Windows, `NUL` is a special device that discards output—but **only in CMD.exe and PowerShell**. When running in bash environments (Git Bash, MSYS2, Cygwin), `NUL` is not recognized as a special device. Instead, bash creates a literal file named `nul` in the current directory.
+>
+> **Incorrect (creates a file on Windows bash):**
+> ```bash
+> command > NUL 2>&1
+> ```
+>
+> **Correct (works everywhere in bash):**
+> ```bash
+> command > /dev/null 2>&1
+> ```
+>
+> Git Bash, MSYS2, and Cygwin all emulate `/dev/null` properly, so always use `/dev/null` when writing bash scripts, regardless of the target platform.
 
 **Avoid platform-specific commands:**
 
@@ -873,6 +892,88 @@ if [ "$CURRENT_VERSION" != "$LATEST_VERSION" ]; then
 fi
 
 [Command continues...]
+```
+
+## Common Pitfalls
+
+This section documents common mistakes that cause commands to fail on certain platforms or environments.
+
+### The Windows Null Device Trap
+
+One of the most common cross-platform mistakes is assuming `NUL` works in all Windows contexts.
+
+**The Problem:**
+
+Windows has a special null device called `NUL` (or `nul`—it's case-insensitive). When you redirect output to `NUL` in CMD.exe or PowerShell, the output is discarded:
+
+```cmd
+REM This works in CMD.exe and PowerShell
+command > NUL 2>&1
+```
+
+However, many developers run bash on Windows using Git Bash, MSYS2, or Cygwin. In these bash environments, `NUL` is **not** recognized as a special device. Instead, bash treats it as a regular filename and creates a literal file named `nul` in your working directory.
+
+**The Solution:**
+
+Always use `/dev/null` in bash scripts:
+
+```bash
+# This works in ALL bash environments (macOS, Linux, Windows Git Bash, WSL)
+command > /dev/null 2>&1
+```
+
+Git Bash, MSYS2, and Cygwin all emulate Unix-style `/dev/null`, so this approach works universally.
+
+**When to use which:**
+
+| Context | Null Device | Notes |
+|---------|-------------|-------|
+| Bash script (any platform) | `/dev/null` | Always works |
+| CMD.exe batch file | `NUL` | Windows-specific |
+| PowerShell script | `$null` or `NUL` | Windows-specific |
+
+Since Claude Code commands execute in bash contexts, always use `/dev/null`.
+
+### Platform Detection Edge Cases
+
+When using `uname` for platform detection, be aware of the various outputs on different systems:
+
+| Environment | `uname` Output | Notes |
+|-------------|----------------|-------|
+| macOS | `Darwin` | All macOS versions |
+| Linux | `Linux` | Standard Linux distros |
+| Git Bash | `MINGW64_NT-*` or `MINGW32_NT-*` | Common on Windows |
+| MSYS2 | `MSYS_NT-*` | MSYS2 shell |
+| Cygwin | `CYGWIN_NT-*` | Cygwin shell |
+| WSL 1 | `Linux` | Appears as Linux |
+| WSL 2 | `Linux` | Appears as Linux |
+
+**Important:** WSL (Windows Subsystem for Linux) reports as `Linux`, not as Windows. This is usually the desired behavior since WSL provides a full Linux environment. However, if you need to detect WSL specifically:
+
+```bash
+# Detect if running in WSL
+if grep -qi microsoft /proc/version 2>/dev/null; then
+  PLATFORM="WSL"
+elif [ "$(uname)" = "Linux" ]; then
+  PLATFORM="Linux"
+fi
+```
+
+**Pattern matching for Windows bash environments:**
+
+```bash
+case "$(uname)" in
+  MINGW*|MSYS*|CYGWIN*)
+    # Windows bash environment (Git Bash, MSYS2, Cygwin)
+    PLATFORM="Windows-Bash"
+    ;;
+  Linux*)
+    PLATFORM="Linux"
+    ;;
+  Darwin*)
+    PLATFORM="macOS"
+    ;;
+esac
 ```
 
 ## Best Practices Summary
