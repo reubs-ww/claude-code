@@ -2,6 +2,7 @@
 
 ## 2.1.33
 
+- Added warning when bash commands redirect to `nul` on Windows with Git Bash, which creates a file instead of discarding output — suggests using `/dev/null` instead
 - Fixed agent teammate sessions in tmux to send and receive messages
 - Fixed warnings about agent teams not being available on your current plan
 - Added `TeammateIdle` and `TaskCompleted` hook events for multi-agent workflows
