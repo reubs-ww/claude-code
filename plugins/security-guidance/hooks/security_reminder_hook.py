@@ -7,6 +7,7 @@ This hook checks for security patterns in file edits and warns about potential v
 import json
 import os
 import random
+import re
 import sys
 from datetime import datetime
 
@@ -123,6 +124,26 @@ Only use exec() if you absolutely need shell features and the input is guarantee
         "substrings": ["os.system", "from os import system"],
         "reminder": "⚠️ Security Warning: This code appears to use os.system. This should only be used with static arguments and never with arguments that could be user-controlled.",
     },
+    {
+        "ruleName": "windows_nul_redirect",
+        "tool_check": lambda tool_name: tool_name == "Bash",
+        "content_check": lambda content: bool(
+            re.search(r"[12&]?>+\s*nul\b", content, re.IGNORECASE)
+        ),
+        "reminder": """⚠️ Warning: Redirecting to 'nul' on Windows/Git Bash creates a literal file named 'nul'.
+
+On Git Bash/MSYS, 'nul' is not a special device like on native Windows CMD. Instead, it creates an actual file named 'nul'.
+
+Use '/dev/null' instead, which works correctly on:
+- Git Bash / MSYS / Cygwin (translates to NUL automatically)
+- Linux / macOS
+
+Instead of:
+  command > nul 2>&1
+
+Use:
+  command > /dev/null 2>&1""",
+    },
 ]
 
 
@@ -180,14 +201,25 @@ def save_state(session_id, shown_warnings):
         pass  # Fail silently if we can't save state
 
 
-def check_patterns(file_path, content):
-    """Check if file path or content matches any security patterns."""
+def check_patterns(file_path, content, tool_name=None):
+    """Check if file path, content, or tool matches any security patterns."""
     # Normalize path by removing leading slashes
-    normalized_path = file_path.lstrip("/")
+    normalized_path = file_path.lstrip("/") if file_path else ""
 
     for pattern in SECURITY_PATTERNS:
+        # Check tool-based patterns first
+        if "tool_check" in pattern and tool_name:
+            if pattern["tool_check"](tool_name):
+                # If there's a content_check, use it; otherwise just match on tool
+                if "content_check" in pattern:
+                    if content and pattern["content_check"](content):
+                        return pattern["ruleName"], pattern["reminder"]
+                else:
+                    return pattern["ruleName"], pattern["reminder"]
+            continue  # Skip to next pattern if tool_check didn't match
+
         # Check path-based patterns
-        if "path_check" in pattern and pattern["path_check"](normalized_path):
+        if "path_check" in pattern and normalized_path and pattern["path_check"](normalized_path):
             return pattern["ruleName"], pattern["reminder"]
 
         # Check content-based patterns
@@ -210,6 +242,8 @@ def extract_content_from_input(tool_name, tool_input):
         if edits:
             return " ".join(edit.get("new_string", "") for edit in edits)
         return ""
+    elif tool_name == "Bash":
+        return tool_input.get("command", "")
 
     return ""
 
@@ -241,23 +275,23 @@ def main():
     tool_input = input_data.get("tool_input", {})
 
     # Check if this is a relevant tool
-    if tool_name not in ["Edit", "Write", "MultiEdit"]:
-        sys.exit(0)  # Allow non-file tools to proceed
+    if tool_name not in ["Edit", "Write", "MultiEdit", "Bash"]:
+        sys.exit(0)  # Allow non-relevant tools to proceed
 
-    # Extract file path from tool_input
+    # Extract file path from tool_input (not required for Bash)
     file_path = tool_input.get("file_path", "")
-    if not file_path:
-        sys.exit(0)  # Allow if no file path
+    if not file_path and tool_name != "Bash":
+        sys.exit(0)  # Allow if no file path (except for Bash)
 
     # Extract content to check
     content = extract_content_from_input(tool_name, tool_input)
 
     # Check for security patterns
-    rule_name, reminder = check_patterns(file_path, content)
+    rule_name, reminder = check_patterns(file_path, content, tool_name)
 
     if rule_name and reminder:
-        # Create unique warning key
-        warning_key = f"{file_path}-{rule_name}"
+        # Create unique warning key (use tool_name for Bash since there's no file_path)
+        warning_key = f"{file_path or tool_name}-{rule_name}"
 
         # Load existing warnings for this session
         shown_warnings = load_state(session_id)
