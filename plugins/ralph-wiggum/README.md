@@ -32,6 +32,33 @@ This creates a **self-referential feedback loop** where:
 - Each iteration sees modified files and git history
 - Claude autonomously improves by reading its own past work in files
 
+## Requirements
+
+### Supported Platforms
+
+- **macOS**: Works out of the box with default bash and Unix utilities
+- **Linux**: Works out of the box with default bash and Unix utilities
+- **Windows**: Requires Git Bash (installed with [Git for Windows](https://git-scm.com/download/win))
+
+### Shell Dependencies
+
+The plugin's stop hook (`hooks/stop-hook.sh`) uses standard Unix utilities:
+
+| Utility | Purpose |
+|---------|---------|
+| `bash` | Shell interpreter (v4.0+ recommended) |
+| `grep` | Pattern matching in transcripts |
+| `sed` | Frontmatter parsing and state file updates |
+| `awk` | Extracting prompt text from state file |
+| `perl` | Regex pattern matching for `<promise>` tags |
+| `jq` | JSON parsing and output generation |
+
+On **macOS and Linux**, these come pre-installed or are available via package managers.
+
+On **Windows**, Git Bash provides all these utilities except `jq`. Install `jq` separately:
+- Download from https://stedolan.github.io/jq/download/
+- Or use `choco install jq` if you have Chocolatey
+
 ## Quick Start
 
 ```bash
@@ -173,6 +200,57 @@ Keep trying until success. The loop handles retry logic automatically.
 
 - Original technique: https://ghuntley.com/ralph/
 - Ralph Orchestrator: https://github.com/mikeyobrien/ralph-orchestrator
+
+## Troubleshooting
+
+### Windows: Stop hook not working
+
+**Symptom**: The Ralph loop doesn't continue after Claude tries to exit, or you see errors about missing commands.
+
+**Solution**: Ensure you're running Claude Code from **Git Bash**, not Command Prompt or PowerShell. The stop hook requires Unix utilities that are only available in Git Bash on Windows.
+
+```bash
+# Check your shell - should show /bin/bash or similar
+echo $SHELL
+
+# Verify required utilities are available
+which grep sed awk perl jq
+```
+
+### WSL path translation issues
+
+The plugin may not work correctly in WSL (Windows Subsystem for Linux) environments due to path translation issues between Windows and Linux filesystems. For best results on Windows, use native Git Bash instead of WSL.
+
+### "command not found" errors
+
+**Symptom**: Errors like `jq: command not found` or `perl: command not found`.
+
+**Solution**: Install the missing utility:
+
+| Platform | Command |
+|----------|---------|
+| macOS | `brew install jq` |
+| Ubuntu/Debian | `sudo apt install jq` |
+| Windows (Git Bash) | Download from https://stedolan.github.io/jq/download/ and add to PATH |
+
+### State file corruption
+
+**Symptom**: Error messages about "State file corrupted" mentioning invalid iteration or max_iterations values.
+
+**Solution**: Delete the state file and start a fresh loop:
+```bash
+rm .claude/ralph-loop.local.md
+/ralph-loop "Your prompt" --max-iterations 20
+```
+
+### Loop runs forever
+
+**Symptom**: Ralph keeps iterating even though the task seems complete.
+
+**Solutions**:
+1. Ensure your prompt includes a clear `<promise>COMPLETION_TEXT</promise>` instruction
+2. Always use `--max-iterations` as a safety limit
+3. Use `/cancel-ralph` to manually stop the loop
 
 ## For Help
 
