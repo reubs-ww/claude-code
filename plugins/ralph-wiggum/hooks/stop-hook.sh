@@ -6,6 +6,45 @@
 
 set -euo pipefail
 
+# Extract text content from assistant message JSON
+# Input: JSON line containing message.content array with type:text items
+# Output: All text values joined with newlines, with JSON escapes unescaped
+# This replaces jq for transcript parsing to avoid external dependencies
+extract_text_from_message() {
+  local json="$1"
+
+  # Extract the content array from message.content
+  # The JSON structure is: {"role":"assistant","message":{"content":[...]}}
+  # We need to find text items which have "type":"text" and extract their "text" value
+
+  # Use perl for robust JSON text extraction
+  # -0777 slurps the entire input, allowing multi-line processing
+  # This regex finds all "type":"text" objects and extracts their text values
+  # The perl script collects all text into an array and joins with newlines at the end
+  # to avoid a trailing newline (mimicking jq's join behavior)
+  echo "$json" | perl -0777 -ne '
+    my @texts;
+    # Find all objects with "type":"text" and extract the "text" field
+    # Handle both orderings: {"type":"text","text":"..."} and {"text":"...","type":"text"}
+    while (/\{[^{}]*"type"\s*:\s*"text"[^{}]*\}/g) {
+      my $obj = $&;
+      if ($obj =~ /"text"\s*:\s*"((?:[^"\\]|\\.)*)"/s) {
+        my $text = $1;
+        # Unescape JSON string sequences
+        # Use a placeholder for escaped backslash to avoid double-processing
+        $text =~ s/\\\\/\x00BACKSLASH\x00/g;
+        $text =~ s/\\n/\n/g;
+        $text =~ s/\\t/\t/g;
+        $text =~ s/\\r/\r/g;
+        $text =~ s/\\"/"/g;
+        $text =~ s/\x00BACKSLASH\x00/\\/g;
+        push @texts, $text;
+      }
+    }
+    print join("\n", @texts);
+  '
+}
+
 # Read hook input from stdin (advanced stop hook API)
 HOOK_INPUT=$(cat)
 
@@ -86,23 +125,8 @@ if [[ -z "$LAST_LINE" ]]; then
   exit 0
 fi
 
-# Parse JSON with error handling
-LAST_OUTPUT=$(echo "$LAST_LINE" | jq -r '
-  .message.content |
-  map(select(.type == "text")) |
-  map(.text) |
-  join("\n")
-' 2>&1)
-
-# Check if jq succeeded
-if [[ $? -ne 0 ]]; then
-  echo "⚠️  Ralph loop: Failed to parse assistant message JSON" >&2
-  echo "   Error: $LAST_OUTPUT" >&2
-  echo "   This may indicate a transcript format issue" >&2
-  echo "   Ralph loop is stopping." >&2
-  rm "$RALPH_STATE_FILE"
-  exit 0
-fi
+# Parse JSON to extract text content (using pure bash/perl, no jq dependency)
+LAST_OUTPUT=$(extract_text_from_message "$LAST_LINE")
 
 if [[ -z "$LAST_OUTPUT" ]]; then
   echo "⚠️  Ralph loop: Assistant message contained no text content" >&2
