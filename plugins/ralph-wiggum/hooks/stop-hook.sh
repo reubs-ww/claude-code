@@ -54,8 +54,19 @@ if [[ $MAX_ITERATIONS -gt 0 ]] && [[ $ITERATION -ge $MAX_ITERATIONS ]]; then
   exit 0
 fi
 
-# Get transcript path from hook input
-TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | jq -r '.transcript_path')
+# Get transcript path from hook input (pure bash - no jq dependency for Windows compatibility)
+# Extract value for "transcript_path" key from JSON using grep+sed
+# Handles: "transcript_path": "/path/to/file" or "transcript_path":"/path/to/file"
+TRANSCRIPT_PATH=$(echo "$HOOK_INPUT" | grep -o '"transcript_path"[[:space:]]*:[[:space:]]*"[^"]*"' | sed 's/.*"transcript_path"[[:space:]]*:[[:space:]]*"\([^"]*\)".*/\1/')
+
+# Handle case where transcript_path field is missing
+if [[ -z "$TRANSCRIPT_PATH" ]]; then
+  echo "⚠️  Ralph loop: transcript_path not found in hook input" >&2
+  echo "   This is unusual and may indicate a Claude Code internal issue." >&2
+  echo "   Ralph loop is stopping." >&2
+  rm "$RALPH_STATE_FILE"
+  exit 0
+fi
 
 if [[ ! -f "$TRANSCRIPT_PATH" ]]; then
   echo "⚠️  Ralph loop: Transcript file not found" >&2
