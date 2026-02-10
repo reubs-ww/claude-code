@@ -162,16 +162,35 @@ else
   SYSTEM_MSG="🔄 Ralph iteration $NEXT_ITERATION | No completion promise set - loop runs infinitely"
 fi
 
+# JSON string escape function - escapes special characters for valid JSON
+# Handles: backslashes, double quotes, newlines, tabs, carriage returns
+json_escape() {
+  local text="$1"
+  local result=""
+  local i char
+
+  # Process character by character for reliable escaping
+  for (( i=0; i<${#text}; i++ )); do
+    char="${text:i:1}"
+    case "$char" in
+      $'\\') result+='\\' ;;
+      '"')  result+='\"' ;;
+      $'\n') result+='\n' ;;
+      $'\r') result+='\r' ;;
+      $'\t') result+='\t' ;;
+      *)    result+="$char" ;;
+    esac
+  done
+
+  printf '%s' "$result"
+}
+
 # Output JSON to block the stop and feed prompt back
 # The "reason" field contains the prompt that will be sent back to Claude
-jq -n \
-  --arg prompt "$PROMPT_TEXT" \
-  --arg msg "$SYSTEM_MSG" \
-  '{
-    "decision": "block",
-    "reason": $prompt,
-    "systemMessage": $msg
-  }'
+ESCAPED_PROMPT=$(json_escape "$PROMPT_TEXT")
+ESCAPED_MSG=$(json_escape "$SYSTEM_MSG")
+printf '{"decision":"block","reason":"%s","systemMessage":"%s"}\n' \
+  "$ESCAPED_PROMPT" "$ESCAPED_MSG"
 
 # Exit 0 for successful hook execution
 exit 0
