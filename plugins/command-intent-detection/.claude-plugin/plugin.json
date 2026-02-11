@@ -1,0 +1,9 @@
+{
+  "name": "command-intent-detection",
+  "version": "1.0.0",
+  "description": "Helps Claude distinguish between user requests to display commands vs execute them, preventing unintended command execution",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
