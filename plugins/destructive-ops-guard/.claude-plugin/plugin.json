@@ -1,0 +1,8 @@
+{
+  "name": "destructive-ops-guard",
+  "version": "1.0.0",
+  "description": "Ensures destructive operations always prompt for confirmation, even when Accept Edits mode is enabled. Protects against accidental data loss from commands like rm, dd, mkfs, shred, and destructive SQL.",
+  "author": {
+    "name": "Intern Village"
+  }
+}

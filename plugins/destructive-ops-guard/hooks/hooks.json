@@ -1,0 +1,16 @@
+{
+  "description": "Ensures destructive operations always prompt for confirmation, overriding Accept Edits mode",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 ${CLAUDE_PLUGIN_ROOT}/hooks/destructive_ops_guard.py"
+          }
+        ],
+        "matcher": "Bash"
+      }
+    ]
+  }
+}
