@@ -1,0 +1,9 @@
+{
+  "name": "file-reference-validation",
+  "version": "1.0.0",
+  "description": "Validates file references in destructive operations to prevent accidental deletion of wrong files when using contextual references like 'the file I mentioned' or 'that file'",
+  "author": {
+    "name": "Claude Code Team",
+    "email": "support@anthropic.com"
+  }
+}
