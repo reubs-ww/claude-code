@@ -1,0 +1,78 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.installer.1.9.0.schema.json
+# Created: 2026-02-11
+# WinGet installer manifest for Anthropic.ClaudeCode
+#
+# COEXISTENCE WITH CLAUDE DESKTOP:
+# This package (Claude Code - CLI tool) is designed to coexist with Claude Desktop
+# (Anthropic.Claude or Anthropic.ClaudeDesktop). Key considerations:
+#
+# 1. INSTALLATION PATH: Claude Code installs to a unique path that does not conflict
+#    with Claude Desktop's installation directory.
+#
+# 2. COMMAND NAME: The CLI is invoked via "claude" command. If Claude Desktop also
+#    provides a "claude" command, PATH priority determines which is executed.
+#    Claude Code's installation path should be added AFTER Claude Desktop in PATH
+#    to allow both to coexist, with explicit path invocation when needed.
+#
+# 3. NO FILE CONFLICTS: No shared files, registry keys, or resources between packages.
+
+PackageIdentifier: Anthropic.ClaudeCode
+PackageVersion: "1.0.0"
+MinimumOSVersion: 10.0.17763.0
+Platform:
+  - Windows.Desktop
+
+# Installation behavior
+InstallModes:
+  - interactive
+  - silent
+  - silentWithProgress
+
+# Installer switches for silent installation
+InstallerSwitches:
+  Silent: /S
+  SilentWithProgress: /S
+  InstallLocation: /D=<INSTALLPATH>
+
+# Upgrade behavior - allows side-by-side with other Anthropic packages
+UpgradeBehavior: install
+
+# Commands provided by this package
+Commands:
+  - claude
+
+# Installation scope - per-user to avoid admin requirements and reduce conflicts
+Scope: user
+
+# Package dependencies - Node.js runtime is required
+Dependencies:
+  PackageDependencies:
+    - PackageIdentifier: OpenJS.NodeJS.LTS
+      MinimumVersion: "18.0.0"
+
+# Installers for different architectures
+Installers:
+  - Architecture: x64
+    InstallerType: exe
+    # NOTE: Update this URL and SHA256 for each release
+    InstallerUrl: https://github.com/anthropics/claude-code/releases/download/v1.0.0/claude-code-win-x64.exe
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+    # Unique product code to prevent conflicts with other Anthropic packages
+    ProductCode: "{ANTHROPIC-CLAUDE-CODE-X64}"
+    # Custom install location to avoid conflicts
+    InstallLocationRequired: false
+    # Elevation not required for user-scope installation
+    ElevationRequirement: elevatesSelf
+
+  - Architecture: arm64
+    InstallerType: exe
+    # NOTE: Update this URL and SHA256 for each release
+    InstallerUrl: https://github.com/anthropics/claude-code/releases/download/v1.0.0/claude-code-win-arm64.exe
+    InstallerSha256: 0000000000000000000000000000000000000000000000000000000000000000
+    # Unique product code to prevent conflicts with other Anthropic packages
+    ProductCode: "{ANTHROPIC-CLAUDE-CODE-ARM64}"
+    InstallLocationRequired: false
+    ElevationRequirement: elevatesSelf
+
+ManifestType: installer
+ManifestVersion: 1.9.0

@@ -1,0 +1,58 @@
+# yaml-language-server: $schema=https://aka.ms/winget-manifest.defaultLocale.1.9.0.schema.json
+# Created: 2026-02-11
+# WinGet locale manifest for Anthropic.ClaudeCode
+
+PackageIdentifier: Anthropic.ClaudeCode
+PackageVersion: "1.0.0"
+PackageLocale: en-US
+Publisher: Anthropic
+PublisherUrl: https://www.anthropic.com
+PublisherSupportUrl: https://github.com/anthropics/claude-code/issues
+PrivacyUrl: https://www.anthropic.com/legal/privacy
+Author: Anthropic
+PackageName: Claude Code
+PackageUrl: https://code.claude.com
+License: Proprietary
+LicenseUrl: https://www.anthropic.com/legal/commercial-terms
+Copyright: Copyright (c) 2024-2026 Anthropic
+ShortDescription: Agentic coding tool that lives in your terminal
+Description: |
+  Claude Code is an agentic coding tool that lives in your terminal, understands your codebase,
+  and helps you code faster by executing routine tasks, explaining complex code, and handling
+  git workflows -- all through natural language commands.
+
+  Use it in your terminal, IDE, or tag @claude on GitHub.
+
+  NOTE: This package (Claude Code) is the CLI tool and can be installed alongside Claude Desktop.
+  Both packages can coexist on the same system. If you have both installed, use the full path
+  or ensure your PATH is configured to access the desired "claude" command.
+Moniker: claude-code
+Tags:
+  - ai
+  - anthropic
+  - assistant
+  - claude
+  - cli
+  - code
+  - coding
+  - developer
+  - development
+  - productivity
+  - terminal
+ReleaseNotesUrl: https://github.com/anthropics/claude-code/blob/main/CHANGELOG.md
+Documentations:
+  - DocumentLabel: Documentation
+    DocumentUrl: https://code.claude.com/docs/en/overview
+  - DocumentLabel: Setup Guide
+    DocumentUrl: https://code.claude.com/docs/en/setup
+InstallationNotes: |
+  After installation, open a new terminal and run 'claude' to start using Claude Code.
+
+  If you also have Claude Desktop installed, both applications can coexist. The 'claude'
+  command will invoke whichever application appears first in your PATH. To explicitly
+  use Claude Code, you can:
+  1. Use the full path to the Claude Code executable
+  2. Adjust your PATH environment variable to prioritize Claude Code
+  3. Create an alias (e.g., 'claude-code') in your shell profile
+ManifestType: defaultLocale
+ManifestVersion: 1.9.0
