@@ -1,0 +1,9 @@
+{
+  "name": "startup-detection",
+  "version": "1.0.0",
+  "description": "Detects incorrect binary invocation and helps users identify when Claude Desktop may be intercepting the claude command instead of Claude Code CLI",
+  "author": {
+    "name": "Anthropic",
+    "email": "support@anthropic.com"
+  }
+}
