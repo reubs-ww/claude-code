@@ -1,0 +1,15 @@
+{
+  "description": "Command intent detection hook that provides guidance on distinguishing display vs execute intent",
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/session-start.sh"
+          }
+        ]
+      }
+    ]
+  }
+}
