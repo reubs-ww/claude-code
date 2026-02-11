@@ -1,0 +1,17 @@
+{
+  "description": "Startup detection hook to identify incorrect binary invocation and potential conflicts with Claude Desktop",
+  "hooks": {
+    "SessionStart": [
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "${CLAUDE_PLUGIN_ROOT}/hooks-handlers/detect-binary.sh",
+            "timeout": 10
+          }
+        ]
+      }
+    ]
+  }
+}
