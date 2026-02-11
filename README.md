@@ -49,6 +49,18 @@ For more installation options, uninstall steps, and troubleshooting, see the [se
 
 This repository includes several Claude Code plugins that extend functionality with custom commands and agents. See the [plugins directory](./plugins/README.md) for detailed documentation on available plugins.
 
+## Safety Features
+
+Claude Code includes built-in safety features to protect against accidental execution of destructive commands. Key protections include:
+
+- **Destructive Command Detection**: Commands like `rm -rf`, `dd`, and `DROP DATABASE` trigger confirmation prompts
+- **Accept Edits Override**: Destructive commands still prompt even with auto-approve enabled
+- **File Reference Safety**: Ambiguous file references ("that file") are clarified before deletion
+
+See the [Safety Documentation](./docs/safety/README.md) for details:
+- [User Guide](./docs/safety/user-guide.md) - Understanding and using safety features
+- [Developer Guide](./docs/safety/developer-guide.md) - Extending the safety system
+
 ## Reporting Bugs
 
 We welcome your feedback. Use the `/bug` command to report issues directly within Claude Code, or file a [GitHub issue](https://github.com/anthropics/claude-code/issues).
