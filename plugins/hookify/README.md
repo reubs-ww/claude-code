@@ -34,6 +34,70 @@ Run rm -rf /tmp/test
 
 You should see the warning message immediately!
 
+## Default Safety Hooks
+
+Hookify includes **built-in safety hooks** that are enabled by default to protect against accidental destructive operations. These hooks require user confirmation before executing potentially dangerous commands.
+
+### Destructive Commands Protection
+
+The default safety hook intercepts commands that could cause irreversible data loss:
+
+| Command | Description |
+|---------|-------------|
+| `rm` | Remove files/directories (especially with `-rf`, `-r`, `-f` flags) |
+| `rmdir` | Remove directories |
+| `dd if=` | Direct disk write operations |
+| `mkfs` | Format filesystem |
+| `shred` | Secure delete (unrecoverable) |
+| `truncate` / `:>` | Empty file contents |
+| `chmod 777` | Insecure permissions |
+| `> /path` | Redirects that may overwrite system files |
+
+When these commands are detected, the hook returns `action: ask` which requires user confirmation before proceeding.
+
+### Disabling Default Hooks
+
+If you want to disable the default safety hooks (for example, in automated environments), add the following to your settings:
+
+**Project settings** (`.claude/settings.json`):
+```json
+{
+  "hookify": {
+    "disableDefaultHooks": true
+  }
+}
+```
+
+**User settings** (`~/.claude.json`):
+```json
+{
+  "hookify": {
+    "disableDefaultHooks": true
+  }
+}
+```
+
+### Overriding Default Hooks
+
+You can override any default hook by creating a user rule with the same name. For example, to change the destructive command protection from `ask` to `block`:
+
+`.claude/hookify.block-destructive.local.md`:
+```markdown
+---
+name: default-destructive-command-protection
+enabled: true
+event: bash
+pattern: \brm\s+(-[rfivd]+\s+)*|rmdir\b
+action: block
+---
+
+🛑 **Destructive command blocked!**
+
+This command is not allowed in this project.
+```
+
+User rules always take priority over default rules.
+
 ## Usage
 
 ### Main Command: /hookify
@@ -92,6 +156,7 @@ This command could delete important files. Please:
 
 **Action field:**
 - `warn`: Shows warning but allows operation (default)
+- `ask`: Requires user confirmation before proceeding (used by default safety hooks)
 - `block`: Prevents operation from executing (PreToolUse) or stops session (Stop events)
 
 ### Advanced Rule (Multiple Conditions)
@@ -145,6 +210,7 @@ Use Python regex syntax:
 - Use `|` for OR: `(foo|bar)`
 - Use `.*` to match anything
 - Set `action: block` for dangerous operations
+- Set `action: ask` for operations requiring user confirmation
 - Set `action: warn` (or omit) for informational warnings
 
 ## Examples

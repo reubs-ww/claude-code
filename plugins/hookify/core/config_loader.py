@@ -37,9 +37,11 @@ class Rule:
     event: str  # "bash", "file", "stop", "all", etc.
     pattern: Optional[str] = None  # Simple pattern (legacy)
     conditions: List[Condition] = field(default_factory=list)
-    action: str = "warn"  # "warn" or "block" (future)
+    action: str = "warn"  # "warn", "block", or "ask"
     tool_matcher: Optional[str] = None  # Override tool matching
     message: str = ""  # Message body from markdown
+    priority: str = "normal"  # "high", "normal", "low"
+    is_default: bool = False  # True for built-in default rules
 
     @classmethod
     def from_dict(cls, frontmatter: Dict[str, Any], message: str) -> 'Rule':
@@ -80,7 +82,9 @@ class Rule:
             conditions=conditions,
             action=frontmatter.get('action', 'warn'),
             tool_matcher=frontmatter.get('tool_matcher'),
-            message=message.strip()
+            message=message.strip(),
+            priority=frontmatter.get('priority', 'normal'),
+            is_default=frontmatter.get('isDefault', False)
         )
 
 
@@ -195,8 +199,97 @@ def extract_frontmatter(content: str) -> tuple[Dict[str, Any], str]:
     return frontmatter, message
 
 
+def get_settings() -> Dict[str, Any]:
+    """Load hookify settings from Claude settings files.
+
+    Checks in order:
+    1. .claude/settings.json (project settings)
+    2. ~/.claude.json (user settings)
+
+    Returns:
+        Dict with hookify settings, or empty dict if not found.
+    """
+    settings_paths = [
+        os.path.join('.claude', 'settings.json'),
+        os.path.expanduser('~/.claude.json')
+    ]
+
+    for path in settings_paths:
+        try:
+            if os.path.exists(path):
+                with open(path, 'r') as f:
+                    import json
+                    data = json.load(f)
+                    # Look for hookify settings
+                    if 'hookify' in data:
+                        return data['hookify']
+        except (IOError, OSError, json.JSONDecodeError) as e:
+            print(f"Warning: Failed to read settings from {path}: {e}", file=sys.stderr)
+            continue
+
+    return {}
+
+
+def load_default_rules(event: Optional[str] = None) -> List[Rule]:
+    """Load default rules from the plugin's defaults directory.
+
+    Args:
+        event: Optional event filter ("bash", "file", "stop", etc.)
+
+    Returns:
+        List of enabled default Rule objects matching the event.
+    """
+    rules = []
+
+    # Get plugin root from environment
+    plugin_root = os.environ.get('CLAUDE_PLUGIN_ROOT', '')
+    if not plugin_root:
+        return rules
+
+    # Find all *.default.md files in defaults directory
+    defaults_dir = os.path.join(plugin_root, 'defaults')
+    pattern = os.path.join(defaults_dir, '*.default.md')
+    files = glob.glob(pattern)
+
+    for file_path in files:
+        try:
+            rule = load_rule_file(file_path)
+            if not rule:
+                continue
+
+            # Mark as default rule
+            rule.is_default = True
+
+            # Filter by event if specified
+            if event:
+                if rule.event != 'all' and rule.event != event:
+                    continue
+
+            # Only include enabled rules
+            if rule.enabled:
+                rules.append(rule)
+
+        except (IOError, OSError, PermissionError) as e:
+            print(f"Warning: Failed to read default rule {file_path}: {e}", file=sys.stderr)
+            continue
+        except (ValueError, KeyError, AttributeError, TypeError) as e:
+            print(f"Warning: Failed to parse default rule {file_path}: {e}", file=sys.stderr)
+            continue
+        except Exception as e:
+            print(f"Warning: Unexpected error loading default rule {file_path} ({type(e).__name__}): {e}", file=sys.stderr)
+            continue
+
+    return rules
+
+
 def load_rules(event: Optional[str] = None) -> List[Rule]:
-    """Load all hookify rules from .claude directory.
+    """Load all hookify rules from .claude directory and defaults.
+
+    Loads rules in order:
+    1. Default rules from plugin's defaults/ directory (unless disabled)
+    2. User rules from .claude/hookify.*.local.md
+
+    User rules can override default rules by using the same name.
 
     Args:
         event: Optional event filter ("bash", "file", "stop", etc.)
@@ -205,8 +298,13 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
         List of enabled Rule objects matching the event.
     """
     rules = []
+    rule_names = set()
 
-    # Find all hookify.*.local.md files
+    # Check if default hooks are disabled
+    settings = get_settings()
+    disable_defaults = settings.get('disableDefaultHooks', False)
+
+    # Load user rules first (they take priority)
     pattern = os.path.join('.claude', 'hookify.*.local.md')
     files = glob.glob(pattern)
 
@@ -224,6 +322,7 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
             # Only include enabled rules
             if rule.enabled:
                 rules.append(rule)
+                rule_names.add(rule.name)
 
         except (IOError, OSError, PermissionError) as e:
             # File I/O errors - log and continue
@@ -237,6 +336,18 @@ def load_rules(event: Optional[str] = None) -> List[Rule]:
             # Unexpected errors - log with type details
             print(f"Warning: Unexpected error loading {file_path} ({type(e).__name__}): {e}", file=sys.stderr)
             continue
+
+    # Load default rules (if not disabled)
+    if not disable_defaults:
+        default_rules = load_default_rules(event=event)
+        for rule in default_rules:
+            # Skip if user has defined a rule with the same name
+            if rule.name not in rule_names:
+                rules.append(rule)
+
+    # Sort by priority (high first)
+    priority_order = {'high': 0, 'normal': 1, 'low': 2}
+    rules.sort(key=lambda r: priority_order.get(r.priority, 1))
 
     return rules
 
