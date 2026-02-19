@@ -1,0 +1,29 @@
+{
+  "name": "@anthropic-ai/claude-code",
+  "version": "0.2.200",
+  "description": "Claude Code - AI-powered coding assistant",
+  "type": "module",
+  "main": "dist/index.js",
+  "types": "dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --import tsx --test 'src/utils/__tests__/includeDirectiveParser.test.ts'",
+    "test:coverage": "node --import tsx --test --experimental-test-coverage 'src/utils/__tests__/includeDirectiveParser.test.ts'",
+    "lint": "eslint src/",
+    "typecheck": "tsc --noEmit"
+  },
+  "keywords": [
+    "claude",
+    "ai",
+    "coding",
+    "assistant",
+    "anthropic"
+  ],
+  "author": "Anthropic",
+  "license": "MIT",
+  "devDependencies": {
+    "@types/node": "^20.0.0",
+    "tsx": "^4.0.0",
+    "typescript": "^5.0.0"
+  }
+}
