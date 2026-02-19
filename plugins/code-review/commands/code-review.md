@@ -1,7 +1,10 @@
 ---
 allowed-tools: Bash(gh issue view:*), Bash(gh search:*), Bash(gh issue list:*), Bash(gh pr comment:*), Bash(gh pr diff:*), Bash(gh pr view:*), Bash(gh pr list:*), mcp__github_inline_comment__create_inline_comment
+argument-hint: [--comment]
 description: Code review a pull request
 ---
+
+**Arguments provided:** $ARGUMENTS
 
 Provide a code review for the given pull request.
 
@@ -60,11 +63,11 @@ Note: Still review Claude generated PR's.
    - If issues were found, list each issue with a brief description.
    - If no issues were found, state: "No issues found. Checked for bugs and CLAUDE.md compliance."
 
-   If `--comment` argument was NOT provided, stop here. Do not post any GitHub comments.
+   If the arguments above do NOT include `--comment`, stop here. Do not post any GitHub comments.
 
-   If `--comment` argument IS provided and NO issues were found, post a summary comment using `gh pr comment` and stop.
+   If the arguments above include `--comment` and NO issues were found, post a summary comment using `gh pr comment` and stop.
 
-   If `--comment` argument IS provided and issues were found, continue to step 8.
+   If the arguments above include `--comment` and issues were found, continue to step 8.
 
 8. Create a list of all comments that you plan on leaving. This is only for you to make sure you are comfortable with the comments. Do not post this list anywhere.
 
@@ -90,7 +93,7 @@ Notes:
 - Use gh CLI to interact with GitHub (e.g., fetch pull requests, create comments). Do not use web fetch.
 - Create a todo list before starting.
 - You must cite and link each issue in inline comments (e.g., if referring to a CLAUDE.md, include a link to it).
-- If no issues are found and `--comment` argument is provided, post a comment with the following format:
+- If no issues are found and the arguments include `--comment`, post a comment with the following format:
 
 ---
 
